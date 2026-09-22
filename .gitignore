@@ -1,0 +1,23 @@
+# Python virtual environment
+.venv/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Test/tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Build output
+build/
+dist/
+
+# Environment secrets
+.env
+.env.*
+
+# Downloaded/raw datasets
+data/raw/
