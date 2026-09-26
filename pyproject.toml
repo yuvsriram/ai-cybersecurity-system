@@ -7,11 +7,29 @@ name = "ai-cybersecurity-system"
 version = "0.1.0"
 description = "AI-powered cybersecurity threat detection and investigation system"
 requires-python = ">=3.13,<3.14"
-dependencies = []
+dependencies = [
+    "sqlalchemy>=2.0,<3",
+    "scikit-learn>=1.9,<2",
+    "psycopg[binary]>=3.2,<4",
+    "alembic>=1.16,<2",
+    "fastapi>=0.116,<1",
+    "uvicorn[standard]>=0.35,<1",
+    "mlflow>=3,<4",
+    "python-dotenv>=1.0,<2",
+    "prometheus-client>=0.21,<1",
+    "opentelemetry-api>=1.37,<2",
+    "opentelemetry-sdk>=1.37,<2",
+    "opentelemetry-exporter-otlp-proto-http>=1.37,<2",
+    "opentelemetry-instrumentation-fastapi>=0.58b0,<1",
+    "opentelemetry-instrumentation-sqlalchemy>=0.58b0,<1",
+    "pytest>=9.1,<10",
+    "httpx2>=2.13,<3",
+]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=9.1,<10",
+    "httpx2>=2.13,<3",
 ]
 
 [tool.setuptools.packages.find]

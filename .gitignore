@@ -18,6 +18,16 @@ dist/
 # Environment secrets
 .env
 .env.*
+!.env.example
+
+# Observability secrets
+observability/secrets/*
+!observability/secrets/.gitkeep
 
 # Downloaded/raw datasets
 data/raw/
+
+# MLflow
+mlflow.db
+mlruns/
+.artifacts/
