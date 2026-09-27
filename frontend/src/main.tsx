@@ -21,6 +21,8 @@ import './styles/data.css'
 import './styles/analysis.css'
 import './styles/investigations.css'
 import './styles/cases.css'
+import './styles/audit.css'
+import './styles/system.css'
 
 createRoot(
   document.getElementById(

@@ -1,0 +1,186 @@
+.system-error {
+  margin-bottom: 18px;
+}
+
+.system-health-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.system-health-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.system-health-card svg {
+  flex: 0 0 auto;
+}
+
+.system-health-card div {
+  display: grid;
+  gap: 5px;
+}
+
+.system-health-card span {
+  color: #526b83;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.system-health-card strong {
+  font-size: 14px;
+}
+
+.system-health-card-ok svg,
+.system-health-card-ok strong {
+  color: #88cda9;
+}
+
+.system-health-card-error svg,
+.system-health-card-error strong {
+  color: #e39aa8;
+}
+
+.system-layout {
+  display: grid;
+  grid-template-columns:
+    minmax(300px, 0.8fr)
+    minmax(0, 1.2fr);
+  gap: 18px;
+}
+
+.system-panel h2 {
+  margin: 0 0 18px;
+  color: #e4edf7;
+  font-size: 17px;
+}
+
+.system-check-list {
+  display: grid;
+  gap: 8px;
+}
+
+.system-check-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 11px;
+  border: 1px solid #182d43;
+  border-radius: 8px;
+  background: #081522;
+}
+
+.system-check-row div {
+  display: grid;
+  gap: 5px;
+}
+
+.system-check-row strong {
+  color: #aabccd;
+  font-size: 10px;
+}
+
+.system-check-row code {
+  color: #526d86;
+  font-size: 8px;
+}
+
+.system-check-row > span {
+  color: #88cda9;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.system-last-check {
+  margin: 12px 0 0;
+  color: #526b83;
+  font-size: 8px;
+}
+
+.system-component-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.system-component-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #192e44;
+  border-radius: 8px;
+  background: #081522;
+}
+
+.system-component-card svg {
+  flex: 0 0 auto;
+  color: #6da9ce;
+}
+
+.system-component-card strong {
+  color: #adbdcd;
+  font-size: 10px;
+}
+
+.system-component-card p {
+  margin: 5px 0 0;
+  color: #627990;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.system-boundary-note {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 13px;
+  border: 1px solid #294b3e;
+  border-radius: 9px;
+  background: #0b1c17;
+}
+
+.system-boundary-note svg {
+  color: #79c49d;
+}
+
+.system-boundary-note div {
+  display: grid;
+  gap: 4px;
+}
+
+.system-boundary-note strong {
+  color: #a9d7bd;
+  font-size: 10px;
+}
+
+.system-boundary-note span {
+  color: #678b77;
+  font-size: 9px;
+}
+
+@media (max-width: 950px) {
+  .system-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .system-health-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .system-health-grid,
+  .system-component-grid {
+    grid-template-columns: 1fr;
+  }
+}

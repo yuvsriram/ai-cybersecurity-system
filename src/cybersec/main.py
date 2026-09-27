@@ -160,8 +160,6 @@ def create_app() -> FastAPI:
         ],
     )
 
-    # Viewers may inspect investigation
-    # history. POST routes enforce analyst.
     app.include_router(
         investigation_runs.router,
         dependencies=[
@@ -173,8 +171,6 @@ def create_app() -> FastAPI:
         ],
     )
 
-    # Viewers may inspect cases. Case
-    # mutations enforce analyst locally.
     app.include_router(
         cases.router,
         dependencies=[
@@ -197,12 +193,16 @@ def create_app() -> FastAPI:
         ],
     )
 
+    # Viewer access permits only the
+    # sanitized /audit/public endpoint.
+    # Full /audit applies admin RBAC
+    # directly on the route.
     app.include_router(
         audit.router,
         dependencies=[
             Depends(
                 require_minimum_role(
-                    "admin"
+                    "viewer"
                 )
             )
         ],

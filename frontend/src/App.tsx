@@ -21,6 +21,10 @@ import {
 } from './pages/AnalyzeLogsPage'
 
 import {
+  AuditLogPage,
+} from './pages/AuditLogPage'
+
+import {
   CasesPage,
 } from './pages/CasesPage'
 
@@ -41,8 +45,8 @@ import {
 } from './pages/InvestigationsPage'
 
 import {
-  PlaceholderPage,
-} from './pages/PlaceholderPage'
+  SystemPage,
+} from './pages/SystemPage'
 
 
 function App() {
@@ -135,20 +139,14 @@ function App() {
         <Route
           path="audit"
           element={
-            <PlaceholderPage
-              title="Audit Log"
-              description="Review security-sensitive activity and administrative actions."
-            />
+            <AuditLogPage />
           }
         />
 
         <Route
           path="system"
           element={
-            <PlaceholderPage
-              title="System"
-              description="Inspect application health, workers, observability, and platform status."
-            />
+            <SystemPage />
           }
         />
 

@@ -1,0 +1,260 @@
+.audit-heading-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  border: 1px solid #495578;
+  border-radius: 8px;
+  color: #a9b9e5;
+  font-size: 10px;
+  font-weight: 700;
+  background: #151c30;
+}
+
+.audit-security-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid #294b3e;
+  border-radius: 9px;
+  background: #0b1c17;
+}
+
+.audit-security-banner svg {
+  color: #79c49d;
+}
+
+.audit-security-banner div {
+  display: grid;
+  gap: 4px;
+}
+
+.audit-security-banner strong {
+  color: #a9d7bd;
+  font-size: 10px;
+}
+
+.audit-security-banner span {
+  color: #678b77;
+  font-size: 10px;
+}
+
+.audit-error {
+  margin-bottom: 18px;
+}
+
+.audit-stat-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.audit-stat-card span {
+  color: #526b83;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.audit-stat-card strong {
+  display: block;
+  margin-top: 6px;
+  color: #e1ebf5;
+  font-size: 27px;
+}
+
+.audit-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.audit-controls h2,
+.audit-panel-heading h2 {
+  margin: 0;
+  color: #e4edf7;
+  font-size: 17px;
+}
+
+.audit-filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.audit-filter-controls select {
+  height: 36px;
+  padding: 0 9px;
+  border: 1px solid #213c55;
+  border-radius: 7px;
+  color: #aabdd0;
+  background: #07131f;
+}
+
+.audit-layout {
+  display: grid;
+  grid-template-columns:
+    minmax(320px, 0.75fr)
+    minmax(0, 1.25fr);
+  gap: 18px;
+}
+
+.audit-panel-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.audit-event-list {
+  display: grid;
+  gap: 8px;
+  max-height: 700px;
+  overflow-y: auto;
+}
+
+.audit-event-row {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #172c42;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  background: #081522;
+}
+
+.audit-event-row:hover,
+.audit-event-row-active {
+  border-color: #3d698b;
+  background: #102238;
+}
+
+.audit-event-row > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.audit-event-row strong {
+  color: #b7c7d7;
+  font-size: 10px;
+}
+
+.audit-event-row > span,
+.audit-event-row time {
+  display: block;
+  margin-top: 7px;
+  color: #526b83;
+  font-size: 8px;
+}
+
+.audit-outcome {
+  display: inline-flex;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.audit-outcome-success {
+  border: 1px solid #315b4c;
+  color: #8bd0ad;
+  background: #10251e;
+}
+
+.audit-outcome-failure,
+.audit-outcome-failed {
+  border: 1px solid #74404c;
+  color: #e5a0ae;
+  background: #2a171d;
+}
+
+.audit-detail-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.audit-metadata {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #182c41;
+  border-radius: 7px;
+  background: #07131f;
+}
+
+.audit-metadata span {
+  color: #506981;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.audit-metadata strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 5px;
+  color: #9baec1;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audit-redaction-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 11px;
+  border: 1px solid #24463a;
+  border-radius: 7px;
+  color: #719c84;
+  font-size: 9px;
+  background: #091914;
+}
+
+.audit-empty {
+  min-height: 170px;
+  display: grid;
+  place-items: center;
+  color: #597188;
+  font-size: 10px;
+}
+
+@media (max-width: 950px) {
+  .audit-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .audit-filter-controls {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 700px) {
+  .audit-stat-grid,
+  .audit-detail-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .audit-stat-grid,
+  .audit-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

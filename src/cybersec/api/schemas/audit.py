@@ -31,3 +31,31 @@ class AuditEventResponse(
     model_config = {
         "from_attributes": True
     }
+
+
+class PublicAuditEventResponse(
+    BaseModel
+):
+    """
+    Sanitized audit representation suitable
+    for read-only viewer/demo access.
+
+    Deliberately excludes:
+    - actor_name
+    - resource_id
+    - detail
+    - attributes
+    """
+
+    id: int
+    created_at: datetime
+
+    actor_role: str
+    action: str
+
+    resource_type: str
+    outcome: str
+
+    model_config = {
+        "from_attributes": True
+    }

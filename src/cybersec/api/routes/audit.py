@@ -9,9 +9,11 @@ from sqlalchemy.orm import Session
 
 from cybersec.api.dependencies import (
     get_db_session,
+    require_minimum_role,
 )
 from cybersec.api.schemas.audit import (
     AuditEventResponse,
+    PublicAuditEventResponse,
 )
 from cybersec.db.repositories.audit import (
     AuditRepository,
@@ -28,6 +30,13 @@ router = APIRouter(
     "",
     response_model=list[
         AuditEventResponse
+    ],
+    dependencies=[
+        Depends(
+            require_minimum_role(
+                "admin"
+            )
+        )
     ],
 )
 def list_audit_events(
@@ -75,6 +84,60 @@ def list_audit_events(
 
     return [
         AuditEventResponse
+        .model_validate(
+            event
+        )
+        for event in events
+    ]
+
+
+@router.get(
+    "/public",
+    response_model=list[
+        PublicAuditEventResponse
+    ],
+)
+def list_public_audit_events(
+    limit: int = Query(
+        default=200,
+        ge=1,
+        le=500,
+    ),
+    offset: int = Query(
+        default=0,
+        ge=0,
+    ),
+    action: (
+        str | None
+    ) = None,
+    resource_type: (
+        str | None
+    ) = None,
+    session: Session = Depends(
+        get_db_session
+    ),
+) -> list[
+    PublicAuditEventResponse
+]:
+    repository = (
+        AuditRepository(
+            session
+        )
+    )
+
+    events = (
+        repository.list_events(
+            limit=limit,
+            offset=offset,
+            action=action,
+            resource_type=(
+                resource_type
+            ),
+        )
+    )
+
+    return [
+        PublicAuditEventResponse
         .model_validate(
             event
         )
