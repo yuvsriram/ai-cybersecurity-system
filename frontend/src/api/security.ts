@@ -5,6 +5,7 @@ import {
 import type {
   AlertEvidence,
   AnalysisRequest,
+  LogAnalysisExplanationResponse,
   LogAnalysisResponse,
   SecurityAlert,
   SecurityEvent,
@@ -50,6 +51,34 @@ export async function analyzeLogs(
 ): Promise<LogAnalysisResponse> {
   return apiRequest<LogAnalysisResponse>(
     '/api/v1/analyze',
+    {
+      method: 'POST',
+
+      apiKey,
+
+      signal,
+
+      headers: {
+        'Content-Type':
+          'application/json',
+      },
+
+      body: JSON.stringify(
+        request,
+      ),
+    },
+  )
+}
+
+export async function explainLogs(
+  apiKey: string | null,
+  request: AnalysisRequest,
+  signal?: AbortSignal,
+): Promise<LogAnalysisExplanationResponse> {
+  return apiRequest<
+    LogAnalysisExplanationResponse
+  >(
+    '/api/v1/analyze/explain',
     {
       method: 'POST',
 

@@ -8,6 +8,10 @@ from pydantic import (
     Field,
 )
 
+from cybersec.ai.investigation import (
+    InvestigationResult,
+)
+
 
 AnalysisFormat = Literal[
     "splunk_windows_security",
@@ -117,3 +121,19 @@ class LogAnalysisResponse(BaseModel):
     events: list[
         AnalysisEventResponse
     ]
+
+
+class LogAnalysisExplanationResponse(
+    BaseModel
+):
+    analysis: LogAnalysisResponse
+
+    primary_finding: (
+        AnalysisAlertResponse
+        | None
+    )
+
+    explanation: (
+        InvestigationResult
+        | None
+    )

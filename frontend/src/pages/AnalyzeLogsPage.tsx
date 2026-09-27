@@ -6,7 +6,10 @@ import {
   Play,
   RotateCcw,
   ShieldAlert,
+  ShieldCheck,
+  Sparkles,
 } from 'lucide-react'
+
 import {
   useMemo,
   useRef,
@@ -16,12 +19,17 @@ import {
 
 import {
   analyzeLogs,
+  explainLogs,
 } from '../api/security'
+
 import type {
   AnalysisFormat,
   AnalysisSeverity,
+  InvestigationEvidenceSummary,
+  LogAnalysisExplanationResponse,
   LogAnalysisResponse,
 } from '../api/types'
+
 import {
   useApiKey,
 } from '../auth/ApiKeyContext'
@@ -31,6 +39,12 @@ const MAX_FILE_BYTES =
 
 const DATASET_NAME =
   'interactive_demo'
+
+type AnalysisSample =
+  | 'lockout'
+  | 'failed-burst'
+  | 'ntlm-spray'
+  | 'no-detection'
 
 function accountLockoutSample():
   string {
@@ -199,6 +213,73 @@ function formatDateTime(
   return parsed.toLocaleString()
 }
 
+function formatDuration(
+  seconds: number,
+): string {
+  if (seconds < 60) {
+    return `${seconds.toFixed(0)} sec`
+  }
+
+  const minutes =
+    seconds / 60
+
+  if (minutes < 60) {
+    return `${minutes.toFixed(1)} min`
+  }
+
+  return `${(
+    minutes / 60
+  ).toFixed(1)} hr`
+}
+
+function formatKnownOutcomes(
+  summary:
+    InvestigationEvidenceSummary,
+): string {
+  const entries =
+    Object.entries(
+      summary.known_outcomes,
+    )
+
+  const pieces =
+    entries.map(
+      ([name, count]) =>
+        `${name}: ${count}`,
+    )
+
+  if (
+    summary.unknown_outcome_count >
+    0
+  ) {
+    pieces.push(
+      `unknown: ${summary.unknown_outcome_count}`,
+    )
+  }
+
+  if (pieces.length === 0) {
+    return 'None'
+  }
+
+  return pieces.join(', ')
+}
+
+function shortFingerprint(
+  value: string,
+): string {
+  if (value.length <= 16) {
+    return value
+  }
+
+  return (
+    `${value.slice(
+      0,
+      8,
+    )}...${value.slice(
+      -8,
+    )}`
+  )
+}
+
 export function AnalyzeLogsPage() {
   const {
     apiKey,
@@ -235,7 +316,9 @@ export function AnalyzeLogsPage() {
     result,
     setResult,
   ] =
-    useState<LogAnalysisResponse | null>(
+    useState<
+      LogAnalysisResponse | null
+    >(
       null,
     )
 
@@ -252,6 +335,30 @@ export function AnalyzeLogsPage() {
       null,
     )
 
+  const [
+    explanationResponse,
+    setExplanationResponse,
+  ] =
+    useState<
+      LogAnalysisExplanationResponse
+      | null
+    >(
+      null,
+    )
+
+  const [
+    explanationLoading,
+    setExplanationLoading,
+  ] = useState(false)
+
+  const [
+    explanationError,
+    setExplanationError,
+  ] =
+    useState<string | null>(
+      null,
+    )
+
   const contentBytes =
     useMemo(
       () =>
@@ -262,6 +369,20 @@ export function AnalyzeLogsPage() {
           .byteLength,
       [content],
     )
+
+  function clearResults() {
+    setResult(null)
+    setExplanationResponse(null)
+    setExplanationError(null)
+  }
+
+  function canRequestApi():
+    boolean {
+    return (
+      authMode === 'demo' ||
+      apiKey !== null
+    )
+  }
 
   async function runAnalysis() {
     const normalized =
@@ -286,11 +407,7 @@ export function AnalyzeLogsPage() {
       return
     }
 
-    const canRequest =
-      authMode === 'demo' ||
-      apiKey !== null
-
-    if (!canRequest) {
+    if (!canRequestApi()) {
       setError(
         'API authentication is not available.',
       )
@@ -301,6 +418,9 @@ export function AnalyzeLogsPage() {
     setLoading(true)
     setError(null)
     setResult(null)
+
+    setExplanationResponse(null)
+    setExplanationError(null)
 
     try {
       const response =
@@ -335,6 +455,103 @@ export function AnalyzeLogsPage() {
     }
   }
 
+  async function runExplanation() {
+    const normalized =
+      content.trim()
+
+    if (!result) {
+      setExplanationError(
+        'Run deterministic analysis before generating an AI explanation.',
+      )
+
+      return
+    }
+
+    if (
+      result.alerts.length === 0
+    ) {
+      setExplanationError(
+        'No detection is available to explain.',
+      )
+
+      return
+    }
+
+    if (!normalized) {
+      setExplanationError(
+        'The source telemetry is no longer available.',
+      )
+
+      return
+    }
+
+    if (
+      contentBytes >
+      MAX_FILE_BYTES
+    ) {
+      setExplanationError(
+        'Input exceeds the 2 MB interactive analysis limit.',
+      )
+
+      return
+    }
+
+    if (!canRequestApi()) {
+      setExplanationError(
+        'API authentication is not available.',
+      )
+
+      return
+    }
+
+    setExplanationLoading(true)
+    setExplanationError(null)
+
+    try {
+      const response =
+        await explainLogs(
+          apiKey,
+          {
+            format,
+            dataset_name:
+              DATASET_NAME,
+            content:
+              normalized,
+          },
+        )
+
+      setResult(
+        response.analysis,
+      )
+
+      setExplanationResponse(
+        response,
+      )
+
+      if (!response.explanation) {
+        setExplanationError(
+          'The analysis did not contain a finding that could be explained.',
+        )
+      }
+    } catch (
+      requestError
+    ) {
+      setExplanationResponse(null)
+
+      setExplanationError(
+        requestError
+          instanceof Error
+          ? requestError.message
+          : (
+              'Unable to generate '
+              + 'the grounded AI explanation.'
+            ),
+      )
+    } finally {
+      setExplanationLoading(false)
+    }
+  }
+
   async function handleFile(
     event:
       ChangeEvent<HTMLInputElement>,
@@ -347,7 +564,7 @@ export function AnalyzeLogsPage() {
     }
 
     setError(null)
-    setResult(null)
+    clearResults()
 
     if (
       file.size >
@@ -394,8 +611,9 @@ export function AnalyzeLogsPage() {
   function reset() {
     setContent('')
     setFileName(null)
-    setResult(null)
     setError(null)
+
+    clearResults()
 
     setFormat(
       'splunk_windows_security',
@@ -410,13 +628,10 @@ export function AnalyzeLogsPage() {
   }
 
   function loadSample(
-    sample:
-      | 'lockout'
-      | 'failed-burst'
-      | 'ntlm-spray'
-      | 'no-detection',
+    sample: AnalysisSample,
   ) {
-    setResult(null)
+    clearResults()
+
     setError(null)
     setFileName(null)
 
@@ -542,11 +757,15 @@ export function AnalyzeLogsPage() {
               value={format}
               onChange={(event) => {
                 const nextFormat =
-                  event.target.value as AnalysisFormat
+                  event.target
+                    .value as AnalysisFormat
 
                 setFormat(
                   nextFormat,
                 )
+
+                clearResults()
+                setError(null)
               }}
             >
               <option value="splunk_windows_security">
@@ -649,7 +868,7 @@ export function AnalyzeLogsPage() {
               )
 
               setFileName(null)
-              setResult(null)
+              clearResults()
               setError(null)
             }}
           />
@@ -692,6 +911,7 @@ export function AnalyzeLogsPage() {
               type="button"
               disabled={
                 loading ||
+                explanationLoading ||
                 !content.trim()
               }
               onClick={
@@ -754,6 +974,13 @@ export function AnalyzeLogsPage() {
               <strong>05</strong>
               <span>Return evidence</span>
             </div>
+
+            <div>
+              <strong>06</strong>
+              <span>
+                Optional grounded AI
+              </span>
+            </div>
           </div>
 
           <div className="analysis-explanation">
@@ -762,12 +989,12 @@ export function AnalyzeLogsPage() {
             />
 
             <p>
-              Severity comes from
-              deterministic detection
-              rules, not from an LLM.
-              This keeps the result
-              explainable and tied to
-              observed evidence.
+              Severity, rule ID, MITRE
+              mapping, counts, and evidence
+              come from deterministic
+              application logic. The optional
+              AI layer can explain those
+              facts, but cannot redefine them.
             </p>
           </div>
         </article>
@@ -789,17 +1016,47 @@ export function AnalyzeLogsPage() {
       {result && (
         <AnalysisResults
           result={result}
+          explanationResponse={
+            explanationResponse
+          }
+          explanationLoading={
+            explanationLoading
+          }
+          explanationError={
+            explanationError
+          }
+          onExplain={
+            runExplanation
+          }
         />
       )}
     </section>
   )
 }
 
+interface AnalysisResultsProps {
+  result: LogAnalysisResponse
+
+  explanationResponse:
+    LogAnalysisExplanationResponse
+    | null
+
+  explanationLoading: boolean
+
+  explanationError:
+    string | null
+
+  onExplain:
+    () => Promise<void>
+}
+
 function AnalysisResults({
   result,
-}: {
-  result: LogAnalysisResponse
-}) {
+  explanationResponse,
+  explanationLoading,
+  explanationError,
+  onExplain,
+}: AnalysisResultsProps) {
   return (
     <div className="analysis-results">
       <article className="panel analysis-summary-panel">
@@ -827,6 +1084,24 @@ function AnalysisResults({
                 .overall_severity,
             )}
           </span>
+        </div>
+
+        <div className="analysis-authority-banner">
+          <ShieldCheck
+            size={16}
+          />
+
+          <div>
+            <strong>
+              Deterministic result
+            </strong>
+
+            <span>
+              Severity and detection
+              metadata below are calculated
+              before any AI explanation.
+            </span>
+          </div>
         </div>
 
         <div className="analysis-stat-grid">
@@ -888,6 +1163,7 @@ function AnalysisResults({
             <span>
               Critical
             </span>
+
             <strong>
               {
                 result
@@ -901,6 +1177,7 @@ function AnalysisResults({
             <span>
               High
             </span>
+
             <strong>
               {
                 result
@@ -914,6 +1191,7 @@ function AnalysisResults({
             <span>
               Medium
             </span>
+
             <strong>
               {
                 result
@@ -927,6 +1205,7 @@ function AnalysisResults({
             <span>
               Low
             </span>
+
             <strong>
               {
                 result
@@ -1042,7 +1321,7 @@ function AnalysisResults({
                         {
                           alert
                             .user_name ??
-                          '—'
+                          '--'
                         }
                       </strong>
                     </div>
@@ -1058,7 +1337,7 @@ function AnalysisResults({
                             .source_ip ??
                           alert
                             .source_host ??
-                          '—'
+                          '--'
                         }
                       </strong>
                     </div>
@@ -1079,7 +1358,7 @@ function AnalysisResults({
                                   ', ',
                                 )
                             )
-                          : '—'}
+                          : '--'}
                       </strong>
                     </div>
                   </div>
@@ -1089,6 +1368,23 @@ function AnalysisResults({
           </div>
         )}
       </article>
+
+      {result.alerts.length > 0 && (
+        <GroundedExplanationPanel
+          response={
+            explanationResponse
+          }
+          loading={
+            explanationLoading
+          }
+          error={
+            explanationError
+          }
+          onExplain={
+            onExplain
+          }
+        />
+      )}
 
       <article className="panel data-panel">
         <div className="data-panel-header">
@@ -1164,7 +1460,7 @@ function AnalysisResults({
                         {
                           event
                             .user_name ??
-                          '—'
+                          '--'
                         }
                       </td>
 
@@ -1174,7 +1470,7 @@ function AnalysisResults({
                             .source_ip ??
                           event
                             .source_host ??
-                          '—'
+                          '--'
                         }
                       </td>
 
@@ -1184,7 +1480,7 @@ function AnalysisResults({
                             .destination_host ??
                           event
                             .destination_ip ??
-                          '—'
+                          '--'
                         }
                       </td>
 
@@ -1204,5 +1500,528 @@ function AnalysisResults({
         </div>
       </article>
     </div>
+  )
+}
+
+interface GroundedExplanationPanelProps {
+  response:
+    LogAnalysisExplanationResponse
+    | null
+
+  loading: boolean
+
+  error:
+    string | null
+
+  onExplain:
+    () => Promise<void>
+}
+
+function GroundedExplanationPanel({
+  response,
+  loading,
+  error,
+  onExplain,
+}: GroundedExplanationPanelProps) {
+  const explanation =
+    response?.explanation ??
+    null
+
+  const finding =
+    response?.primary_finding ??
+    null
+
+  return (
+    <article className="panel analysis-ai-panel">
+      <div className="analysis-ai-header">
+        <div>
+          <span className="panel-kicker">
+            GROUNDED AI
+          </span>
+
+          <h2>
+            AI investigation explanation
+          </h2>
+
+          <p>
+            Optional AI interpretation
+            generated only from the
+            application-supplied detection
+            evidence.
+          </p>
+        </div>
+
+        <div className="analysis-ai-status">
+          <Sparkles
+            size={15}
+          />
+
+          AI-generated interpretation
+        </div>
+      </div>
+
+      <div className="analysis-ai-boundary">
+        <ShieldCheck
+          size={17}
+        />
+
+        <div>
+          <strong>
+            Deterministic authority is preserved
+          </strong>
+
+          <span>
+            The model cannot change the
+            rule ID, severity, MITRE
+            technique, evidence count, or
+            normalized event facts.
+          </span>
+        </div>
+      </div>
+
+      {!explanation && (
+        <div className="analysis-ai-cta">
+          <div>
+            <h3>
+              Explain the primary detection
+            </h3>
+
+            <p>
+              The backend will rerun the
+              deterministic analysis,
+              construct a bounded evidence
+              package, and validate the
+              model output before returning
+              it.
+            </p>
+          </div>
+
+          <button
+            className="analysis-ai-button"
+            type="button"
+            disabled={loading}
+            onClick={() => {
+              void onExplain()
+            }}
+          >
+            <Sparkles
+              size={16}
+            />
+
+            {loading
+              ? 'Generating grounded explanation...'
+              : 'Generate AI Explanation'}
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <div
+          className="analysis-ai-error"
+          role="alert"
+        >
+          <AlertTriangle
+            size={16}
+          />
+
+          <div>
+            <strong>
+              AI explanation unavailable
+            </strong>
+
+            <span>
+              {error}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {explanation && (
+        <div className="analysis-ai-content">
+          {finding && (
+            <div className="analysis-ai-grounding-strip">
+              <div>
+                <span>
+                  Rule
+                </span>
+
+                <strong>
+                  {
+                    finding
+                      .rule_id
+                  }
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Severity
+                </span>
+
+                <strong>
+                  {
+                    finding
+                      .severity
+                  }
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Evidence
+                </span>
+
+                <strong>
+                  {
+                    finding
+                      .evidence_count
+                  } events
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  MITRE
+                </span>
+
+                <strong>
+                  {
+                    finding
+                      .mitre_techniques
+                      .join(', ') ||
+                    '--'
+                  }
+                </strong>
+              </div>
+            </div>
+          )}
+
+          <section className="analysis-ai-section analysis-ai-summary">
+            <div className="analysis-ai-section-heading">
+              <span>
+                AI SUMMARY
+              </span>
+
+              <div className="analysis-ai-outcome">
+                Outcome:
+                {' '}
+                <strong>
+                  {
+                    explanation
+                      .authentication_outcome
+                  }
+                </strong>
+              </div>
+            </div>
+
+            <p>
+              {
+                explanation
+                  .summary
+              }
+            </p>
+          </section>
+
+          <div className="analysis-ai-grid">
+            <AIListSection
+              title="Observed behavior"
+              items={
+                explanation
+                  .observed_behavior
+              }
+            />
+
+            <AIListSection
+              title="Uncertainties"
+              items={
+                explanation
+                  .uncertainties
+              }
+            />
+          </div>
+
+          <section className="analysis-ai-section">
+            <div className="analysis-ai-section-heading">
+              <span>
+                EVIDENCE FINDINGS
+              </span>
+            </div>
+
+            {explanation
+              .evidence_findings
+              .length === 0 ? (
+                <div className="analysis-ai-empty">
+                  No model-generated evidence
+                  findings were returned.
+                </div>
+              ) : (
+                <div className="analysis-ai-findings">
+                  {explanation
+                    .evidence_findings
+                    .map(
+                      (
+                        evidenceFinding,
+                        index,
+                      ) => (
+                        <div
+                          key={
+                            `${index}-${evidenceFinding.observation}`
+                          }
+                        >
+                          <p>
+                            {
+                              evidenceFinding
+                                .observation
+                            }
+                          </p>
+
+                          <div className="analysis-ai-fingerprints">
+                            {evidenceFinding
+                              .event_fingerprints
+                              .map(
+                                (
+                                  fingerprint,
+                                ) => (
+                                  <code
+                                    key={
+                                      fingerprint
+                                    }
+                                  >
+                                    {
+                                      shortFingerprint(
+                                        fingerprint,
+                                      )
+                                    }
+                                  </code>
+                                ),
+                              )}
+                          </div>
+                        </div>
+                      ),
+                    )}
+                </div>
+              )}
+          </section>
+
+          <section className="analysis-ai-section">
+            <div className="analysis-ai-section-heading">
+              <span>
+                RECOMMENDED ANALYST ACTIONS
+              </span>
+            </div>
+
+            {explanation
+              .recommended_next_steps
+              .length === 0 ? (
+                <div className="analysis-ai-empty">
+                  No recommended actions
+                  were returned.
+                </div>
+              ) : (
+                <ol className="analysis-ai-actions">
+                  {explanation
+                    .recommended_next_steps
+                    .map(
+                      (
+                        item,
+                        index,
+                      ) => (
+                        <li
+                          key={
+                            `${index}-${item}`
+                          }
+                        >
+                          {item}
+                        </li>
+                      ),
+                    )}
+                </ol>
+              )}
+          </section>
+
+          <GroundingSummary
+            summary={
+              explanation
+                .evidence_summary
+            }
+          />
+        </div>
+      )}
+    </article>
+  )
+}
+
+function AIListSection({
+  title,
+  items,
+}: {
+  title: string
+  items: string[]
+}) {
+  return (
+    <section className="analysis-ai-section">
+      <div className="analysis-ai-section-heading">
+        <span>
+          {title}
+        </span>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="analysis-ai-empty">
+          None returned.
+        </div>
+      ) : (
+        <ul className="analysis-ai-list">
+          {items.map(
+            (
+              item,
+              index,
+            ) => (
+              <li
+                key={
+                  `${index}-${item}`
+                }
+              >
+                {item}
+              </li>
+            ),
+          )}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+function GroundingSummary({
+  summary,
+}: {
+  summary:
+    InvestigationEvidenceSummary
+}) {
+  return (
+    <section className="analysis-ai-grounding">
+      <div className="analysis-ai-section-heading">
+        <span>
+          GROUNDING / EVIDENCE SUMMARY
+        </span>
+
+        <div className="analysis-grounded-label">
+          <ShieldCheck
+            size={13}
+          />
+
+          Application calculated
+        </div>
+      </div>
+
+      <div className="analysis-ai-grounding-grid">
+        <div>
+          <span>
+            Event count
+          </span>
+
+          <strong>
+            {
+              summary
+                .event_count
+            }
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            Unique users
+          </span>
+
+          <strong>
+            {
+              summary
+                .unique_user_count
+            }
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            Duration
+          </span>
+
+          <strong>
+            {formatDuration(
+              summary
+                .duration_seconds,
+            )}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            Outcomes
+          </span>
+
+          <strong>
+            {formatKnownOutcomes(
+              summary,
+            )}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            First seen
+          </span>
+
+          <strong>
+            {formatDateTime(
+              summary
+                .first_seen_at,
+            )}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            Last seen
+          </span>
+
+          <strong>
+            {formatDateTime(
+              summary
+                .last_seen_at,
+            )}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            Source hosts
+          </span>
+
+          <strong>
+            {
+              summary
+                .source_hosts
+                .join(', ') ||
+              '--'
+            }
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            Destination hosts
+          </span>
+
+          <strong>
+            {
+              summary
+                .destination_hosts
+                .join(', ') ||
+              '--'
+            }
+          </strong>
+        </div>
+      </div>
+    </section>
   )
 }

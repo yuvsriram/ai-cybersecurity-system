@@ -372,10 +372,11 @@ def test_unknown_outcome_claim_is_rejected(
             ],
         )
 
-def test_grounding_failure_is_repaired_once(
+def test_grounding_failure_is_repaired_after_two_failures(
 ) -> None:
     provider = SequencedFakeProvider(
         [
+            ungrounded_response(),
             ungrounded_response(),
             valid_response(),
         ]
@@ -392,7 +393,7 @@ def test_grounding_failure_is_repaired_once(
         ],
     )
 
-    assert provider.call_count == 2
+    assert provider.call_count == 3
 
     assert (
         result.authentication_outcome
@@ -409,7 +410,30 @@ def test_grounding_failure_is_repaired_once(
 
     assert len(
         provider.messages_history
-    ) == 2
+    ) == 3
+
+
+def test_repair_prompt_includes_grounding_reason(
+) -> None:
+    provider = SequencedFakeProvider(
+        [
+            ungrounded_response(),
+            valid_response(),
+        ]
+    )
+
+    service = InvestigationService(
+        provider
+    )
+
+    service.investigate(
+        alert=make_alert(),
+        events=[
+            make_event()
+        ],
+    )
+
+    assert provider.call_count == 2
 
     repair_prompt = "\n".join(
         message.content
@@ -418,8 +442,17 @@ def test_grounding_failure_is_repaired_once(
         )
     )
 
+    expected_reason = (
+        "LLM made an authentication "
+        "outcome claim even though all "
+        "supplied outcomes are unknown: "
+        "failed authentication"
+    )
+
+    assert expected_reason in repair_prompt
+
     assert (
-        "previous candidate response"
+        "diagnostic data only"
         in repair_prompt
     )
 
@@ -434,6 +467,7 @@ def test_repeated_grounding_failure_is_rejected(
 ) -> None:
     provider = SequencedFakeProvider(
         [
+            ungrounded_response(),
             ungrounded_response(),
             ungrounded_response(),
         ]
@@ -453,7 +487,8 @@ def test_repeated_grounding_failure_is_rejected(
             ],
         )
 
-    assert provider.call_count == 2
+    assert provider.call_count == 3
+
 
 def test_prompt_uses_compact_evidence_ids(
 ) -> None:

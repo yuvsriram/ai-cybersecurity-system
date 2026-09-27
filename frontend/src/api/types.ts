@@ -160,3 +160,66 @@ export interface LogAnalysisResponse {
   alerts: AnalysisAlert[]
   events: AnalysisEvent[]
 }
+
+export type AuthenticationOutcome =
+  | 'unknown'
+  | 'success'
+  | 'failure'
+  | 'mixed'
+
+export interface InvestigationEvidenceSummary {
+  event_count: number
+
+  first_seen_at: string
+  last_seen_at: string
+
+  duration_seconds: number
+
+  unique_user_count: number
+
+  source_hosts: string[]
+  destination_hosts: string[]
+  event_codes: string[]
+
+  known_outcomes: Record<
+    string,
+    number
+  >
+
+  unknown_outcome_count: number
+}
+
+export interface InvestigationEvidenceFinding {
+  observation: string
+
+  event_fingerprints: string[]
+}
+
+export interface InvestigationResult {
+  evidence_summary:
+    InvestigationEvidenceSummary
+
+  authentication_outcome:
+    AuthenticationOutcome
+
+  summary: string
+
+  observed_behavior: string[]
+
+  evidence_findings:
+    InvestigationEvidenceFinding[]
+
+  uncertainties: string[]
+
+  recommended_next_steps: string[]
+}
+
+export interface LogAnalysisExplanationResponse {
+  analysis: LogAnalysisResponse
+
+  primary_finding:
+    AnalysisAlert | null
+
+  explanation:
+    InvestigationResult | null
+}

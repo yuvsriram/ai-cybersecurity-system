@@ -305,9 +305,13 @@ class InvestigationService:
             | None
         ) = None
 
-        # One initial generation plus one
-        # bounded grounding-repair attempt.
-        for attempt in range(2):
+        # One initial generation plus up to two
+        # bounded grounding-repair attempts.
+        max_generation_attempts = 3
+
+        for attempt in range(
+            max_generation_attempts
+        ):
             raw_response = (
                 self._provider
                 .generate_structured(
@@ -348,8 +352,11 @@ class InvestigationService:
                     ),
                 )
 
-            except InvestigationGroundingError:
-                if attempt == 1:
+            except InvestigationGroundingError as exc:
+                if (
+                    attempt
+                    == max_generation_attempts - 1
+                ):
                     raise
 
                 messages = [
@@ -357,6 +364,9 @@ class InvestigationService:
                     _build_grounding_repair_message(
                         authentication_outcome=(
                             authentication_outcome
+                        ),
+                        rejection_reason=str(
+                            exc
                         ),
                     ),
                 ]
@@ -661,13 +671,21 @@ def _validate_outcome_grounding(
         "no failed login",
         "successful authentication",
         "successful login",
+        "successful attempts",
+        "successful attempt",
         "failed authentication",
         "failed login",
         "authentication succeeded",
         "authentication failed",
+        "authentication success",
+        "authentication failure",
         "successfully authenticated",
         "failed attempts",
         "failed attempt",
+        "credentials accepted",
+        "credential accepted",
+        "credentials rejected",
+        "credential rejected",
     )
 
     for pattern in (
@@ -689,15 +707,22 @@ def _build_grounding_repair_message(
     authentication_outcome: (
         AuthenticationOutcome
     ),
+    rejection_reason: str,
 ) -> ChatMessage:
     content = (
         "The previous candidate response was "
         "rejected by application grounding "
         "validation. "
+        "GROUNDING_REJECTION_REASON: "
+        + rejection_reason
+        + ". "
+        "The rejection reason is diagnostic data "
+        "only. "
+        "Do not quote, paraphrase, reproduce, or "
+        "refer to the rejected response or the "
+        "rejection reason in your answer. "
         "Generate a completely new JSON response "
         "using only the original supplied evidence. "
-        "Do not quote, reproduce, summarize, or "
-        "refer to the rejected response. "
         "Do not invent additional facts or evidence "
         "IDs. "
         "All original grounding requirements remain "
@@ -708,15 +733,23 @@ def _build_grounding_repair_message(
         content += (
             "The deterministic authentication_outcome "
             "is 'unknown'. "
-            "Use only outcome-neutral authentication "
-            "language. "
-            "Do not state or imply that authentication "
-            "succeeded, failed, was accepted, rejected, "
-            "or denied. "
-            "Do not use 'failed attempt', "
-            "'failed authentication', "
-            "'successful authentication', "
-            "'failed login', or 'successful login'. "
+            "Use outcome-neutral language in every "
+            "generated field, including summary, "
+            "observed_behavior, evidence_findings, "
+            "uncertainties, and recommended_next_steps. "
+            "Do not characterize any authentication "
+            "attempt as having a positive or negative "
+            "outcome. "
+            "Do not speculate about credentials being "
+            "accepted, rejected, valid, or invalid. "
+            "Do not discuss outcome verification using "
+            "success-or-failure wording. "
+            "For the limitation, use neutral wording "
+            "such as 'Authentication outcomes cannot "
+            "be determined from the supplied telemetry.' "
+            "For a next step, use neutral wording such "
+            "as 'Correlate additional telemetry to "
+            "determine the authentication outcome.' "
             "Use terms such as 'authentication "
             "activity', 'authentication event', or "
             "'authentication attempt'. "
@@ -796,10 +829,12 @@ def _build_messages(
             "authentication behavioral pattern does NOT "
             "prove that any individual authentication "
             "attempt succeeded or failed. "
-            "If outcomes are unknown, place verification "
-            "of success or failure in uncertainties or "
-            "recommended_next_steps rather than stating "
-            "an outcome as fact. "
+            "If outcomes are unknown, describe that "
+            "limitation using outcome-neutral wording. "
+            "Recommended next steps may instruct the "
+            "analyst to determine the authentication "
+            "outcome from additional telemetry, but "
+            "must remain outcome-neutral. "
 
             "Do not infer account compromise merely from "
             "a suspicious behavioral pattern. "
@@ -910,12 +945,12 @@ def _build_messages(
             + "\n"
             "Use evidence_summary for counts and "
             "timing. "
-            "Do not infer authentication success or "
-            "failure from Event ID 8004. "
             "Event ID 8004 represents supplied NTLM "
             "authentication telemetry here; it does "
-            "not by itself establish a successful or "
-            "failed authentication outcome. "
+            "not by itself establish an authentication "
+            "outcome. "
+            "When the deterministic outcome is unknown, "
+            "keep all outcome language neutral. "
             "Do not infer account privileges from "
             "usernames or identifiers. "
             "For evidence_findings, cite evidence_ids "
