@@ -25,4 +25,6 @@ mlruns
 observability
 tests
 
+frontend
+
 docker-compose.yml

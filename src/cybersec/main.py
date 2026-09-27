@@ -4,14 +4,25 @@ from fastapi import (
     Depends,
     FastAPI,
 )
+from starlette.middleware.trustedhost import (
+    TrustedHostMiddleware,
+)
 
 from cybersec.api.dependencies import (
     require_minimum_role,
 )
-from cybersec.api.routes import audit
-from cybersec.api.routes import cases
-from cybersec.api.routes import correlation
-from cybersec.api.routes import investigation_runs
+from cybersec.api.middleware import (
+    SecurityHeadersMiddleware,
+)
+from cybersec.api.routes import (
+    audit,
+    cases,
+    correlation,
+    investigation_runs,
+)
+from cybersec.api.routes.analysis import (
+    router as analysis_router,
+)
 from cybersec.api.routes.alerts import (
     router as alerts_router,
 )
@@ -27,7 +38,12 @@ from cybersec.api.routes.ingestion import (
 from cybersec.api.routes.metrics import (
     router as metrics_router,
 )
-from cybersec.db.session import engine
+from cybersec.core.config import (
+    get_settings,
+)
+from cybersec.db.session import (
+    engine,
+)
 from cybersec.observability.middleware import (
     PrometheusHTTPMiddleware,
 )
@@ -35,19 +51,11 @@ from cybersec.observability.tracing import (
     configure_tracing,
     instrument_fastapi_app,
 )
-from starlette.middleware.trustedhost import (
-    TrustedHostMiddleware,
-)
-from cybersec.api.middleware import (
-    SecurityHeadersMiddleware,
-)
-from cybersec.core.config import (
-    get_settings,
-)
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
+
     configure_tracing(
         service_name="cybersec-api",
         engine=engine,
@@ -121,6 +129,17 @@ def create_app() -> FastAPI:
 
     app.include_router(
         alerts_router,
+        dependencies=[
+            Depends(
+                require_minimum_role(
+                    "viewer"
+                )
+            )
+        ],
+    )
+
+    app.include_router(
+        analysis_router,
         dependencies=[
             Depends(
                 require_minimum_role(

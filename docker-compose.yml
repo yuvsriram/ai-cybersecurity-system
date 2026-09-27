@@ -184,6 +184,51 @@ services:
     restart: unless-stopped
 
 
+  frontend:
+    profiles:
+      - demo
+
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    image: cybersec-frontend:local
+    container_name: cybersec-frontend
+
+    environment:
+      DEMO_API_KEY: ${DEMO_API_KEY}
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    depends_on:
+      api:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "-",
+          "http://127.0.0.1:8080/health/live",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
+    restart: unless-stopped
+
+
   prometheus:
     image: prom/prometheus:v3.5.0
     container_name: cybersec-prometheus
