@@ -7,27 +7,39 @@ import {
 import {
   useApiKey,
 } from './auth/ApiKeyContext'
+
 import {
   AppShell,
 } from './components/layout/AppShell'
+
 import {
   AlertsPage,
 } from './pages/AlertsPage'
+
 import {
   AnalyzeLogsPage,
 } from './pages/AnalyzeLogsPage'
+
 import {
   ConnectPage,
 } from './pages/ConnectPage'
+
 import {
   DashboardPage,
 } from './pages/DashboardPage'
+
 import {
   EventsPage,
 } from './pages/EventsPage'
+
+import {
+  InvestigationsPage,
+} from './pages/InvestigationsPage'
+
 import {
   PlaceholderPage,
 } from './pages/PlaceholderPage'
+
 
 function App() {
   const {
@@ -105,10 +117,7 @@ function App() {
         <Route
           path="investigations"
           element={
-            <PlaceholderPage
-              title="AI Investigations"
-              description="Launch and review grounded AI-assisted security investigations."
-            />
+            <InvestigationsPage />
           }
         />
 

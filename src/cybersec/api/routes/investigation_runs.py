@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from cybersec.api.dependencies import (
     get_current_principal,
     get_db_session,
+    require_minimum_role,
 )
 from cybersec.api.schemas.investigation_runs import (
     InvestigationRunResponse,
@@ -46,6 +47,13 @@ router = APIRouter(
     "/alerts/{alert_id}/investigations",
     response_model=InvestigationRunResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[
+        Depends(
+            require_minimum_role(
+                "analyst"
+            )
+        )
+    ],
 )
 def create_investigation_run(
     alert_id: str,
@@ -92,7 +100,8 @@ def create_investigation_run(
     )
 
     events = (
-        event_repository.get_by_fingerprints(
+        event_repository
+        .get_by_fingerprints(
             fingerprints
         )
     )
@@ -131,8 +140,6 @@ def create_investigation_run(
             prompt_version="1.0",
         )
 
-        # Ensure any generated identifier
-        # exists before building the audit row.
         session.flush()
 
         audit_repository = (
@@ -168,7 +175,8 @@ def create_investigation_run(
 
         raise HTTPException(
             status_code=(
-                status.HTTP_503_SERVICE_UNAVAILABLE
+                status
+                .HTTP_503_SERVICE_UNAVAILABLE
             ),
             detail=(
                 "Unable to queue "

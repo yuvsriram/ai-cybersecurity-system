@@ -7,6 +7,17 @@ from cybersec.core.config import (
 )
 
 
+MISSING_ALERT_ID = (
+    "00000000-0000-0000-"
+    "0000-000000000901"
+)
+
+MISSING_RUN_ID = (
+    "00000000-0000-0000-"
+    "0000-000000000902"
+)
+
+
 def test_health_is_public(
     unauthenticated_client: TestClient,
 ) -> None:
@@ -88,6 +99,133 @@ def test_viewer_can_read_events(
         response.status_code
         == 200
     )
+
+
+def test_viewer_can_access_investigation_history(
+    unauthenticated_client: TestClient,
+    viewer_api_key: str,
+) -> None:
+    response = (
+        unauthenticated_client.get(
+            (
+                "/api/v1/alerts/"
+                f"{MISSING_ALERT_ID}"
+                "/investigations"
+            ),
+            headers={
+                "X-API-Key": (
+                    viewer_api_key
+                )
+            },
+        )
+    )
+
+    # 404 proves authorization passed
+    # and the route reached the resource
+    # lookup.
+    assert (
+        response.status_code
+        == 404
+    )
+
+    assert response.json() == {
+        "detail": "Alert not found"
+    }
+
+
+def test_viewer_can_access_investigation_detail(
+    unauthenticated_client: TestClient,
+    viewer_api_key: str,
+) -> None:
+    response = (
+        unauthenticated_client.get(
+            (
+                "/api/v1/alerts/"
+                f"{MISSING_ALERT_ID}"
+                "/investigations/"
+                f"{MISSING_RUN_ID}"
+            ),
+            headers={
+                "X-API-Key": (
+                    viewer_api_key
+                )
+            },
+        )
+    )
+
+    assert (
+        response.status_code
+        == 404
+    )
+
+    assert response.json() == {
+        "detail": (
+            "Investigation run not found"
+        )
+    }
+
+
+def test_viewer_cannot_queue_investigation(
+    unauthenticated_client: TestClient,
+    viewer_api_key: str,
+) -> None:
+    response = (
+        unauthenticated_client.post(
+            (
+                "/api/v1/alerts/"
+                f"{MISSING_ALERT_ID}"
+                "/investigations"
+            ),
+            headers={
+                "X-API-Key": (
+                    viewer_api_key
+                )
+            },
+        )
+    )
+
+    assert (
+        response.status_code
+        == 403
+    )
+
+    assert response.json() == {
+        "detail": (
+            "Insufficient permissions"
+        )
+    }
+
+
+def test_analyst_can_access_investigation_queue_route(
+    unauthenticated_client: TestClient,
+    analyst_api_key: str,
+) -> None:
+    response = (
+        unauthenticated_client.post(
+            (
+                "/api/v1/alerts/"
+                f"{MISSING_ALERT_ID}"
+                "/investigations"
+            ),
+            headers={
+                "X-API-Key": (
+                    analyst_api_key
+                )
+            },
+        )
+    )
+
+    # Authorization succeeded. The
+    # intentionally absent alert is then
+    # rejected by normal resource lookup.
+    assert (
+        response.status_code
+        == 404
+    )
+
+    assert response.json() == {
+        "detail": "Alert not found"
+    }
 
 
 def test_viewer_cannot_access_cases(
