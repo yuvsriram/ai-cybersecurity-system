@@ -17,6 +17,11 @@ MISSING_RUN_ID = (
     "0000-000000000902"
 )
 
+MISSING_CASE_ID = (
+    "00000000-0000-0000-"
+    "0000-000000000903"
+)
+
 
 def test_health_is_public(
     unauthenticated_client: TestClient,
@@ -27,10 +32,7 @@ def test_health_is_public(
         )
     )
 
-    assert (
-        response.status_code
-        == 200
-    )
+    assert response.status_code == 200
 
 
 def test_protected_endpoint_requires_key(
@@ -42,15 +44,10 @@ def test_protected_endpoint_requires_key(
         )
     )
 
-    assert (
-        response.status_code
-        == 401
-    )
+    assert response.status_code == 401
 
     assert response.json() == {
-        "detail": (
-            "API key is required"
-        )
+        "detail": "API key is required"
     }
 
 
@@ -68,15 +65,10 @@ def test_invalid_api_key_is_rejected(
         )
     )
 
-    assert (
-        response.status_code
-        == 401
-    )
+    assert response.status_code == 401
 
     assert response.json() == {
-        "detail": (
-            "Invalid API key"
-        )
+        "detail": "Invalid API key"
     }
 
 
@@ -88,17 +80,13 @@ def test_viewer_can_read_events(
         unauthenticated_client.get(
             "/api/v1/events",
             headers={
-                "X-API-Key": (
+                "X-API-Key":
                     viewer_api_key
-                )
             },
         )
     )
 
-    assert (
-        response.status_code
-        == 200
-    )
+    assert response.status_code == 200
 
 
 def test_viewer_can_access_investigation_history(
@@ -113,20 +101,13 @@ def test_viewer_can_access_investigation_history(
                 "/investigations"
             ),
             headers={
-                "X-API-Key": (
+                "X-API-Key":
                     viewer_api_key
-                )
             },
         )
     )
 
-    # 404 proves authorization passed
-    # and the route reached the resource
-    # lookup.
-    assert (
-        response.status_code
-        == 404
-    )
+    assert response.status_code == 404
 
     assert response.json() == {
         "detail": "Alert not found"
@@ -146,17 +127,13 @@ def test_viewer_can_access_investigation_detail(
                 f"{MISSING_RUN_ID}"
             ),
             headers={
-                "X-API-Key": (
+                "X-API-Key":
                     viewer_api_key
-                )
             },
         )
     )
 
-    assert (
-        response.status_code
-        == 404
-    )
+    assert response.status_code == 404
 
     assert response.json() == {
         "detail": (
@@ -177,17 +154,13 @@ def test_viewer_cannot_queue_investigation(
                 "/investigations"
             ),
             headers={
-                "X-API-Key": (
+                "X-API-Key":
                     viewer_api_key
-                )
             },
         )
     )
 
-    assert (
-        response.status_code
-        == 403
-    )
+    assert response.status_code == 403
 
     assert response.json() == {
         "detail": (
@@ -208,27 +181,20 @@ def test_analyst_can_access_investigation_queue_route(
                 "/investigations"
             ),
             headers={
-                "X-API-Key": (
+                "X-API-Key":
                     analyst_api_key
-                )
             },
         )
     )
 
-    # Authorization succeeded. The
-    # intentionally absent alert is then
-    # rejected by normal resource lookup.
-    assert (
-        response.status_code
-        == 404
-    )
+    assert response.status_code == 404
 
     assert response.json() == {
         "detail": "Alert not found"
     }
 
 
-def test_viewer_cannot_access_cases(
+def test_viewer_can_read_cases(
     unauthenticated_client: TestClient,
     viewer_api_key: str,
 ) -> None:
@@ -236,17 +202,62 @@ def test_viewer_cannot_access_cases(
         unauthenticated_client.get(
             "/api/v1/cases",
             headers={
-                "X-API-Key": (
+                "X-API-Key":
                     viewer_api_key
-                )
             },
         )
     )
 
-    assert (
-        response.status_code
-        == 403
+    assert response.status_code == 200
+
+
+def test_viewer_can_read_case_detail_route(
+    unauthenticated_client: TestClient,
+    viewer_api_key: str,
+) -> None:
+    response = (
+        unauthenticated_client.get(
+            (
+                "/api/v1/cases/"
+                f"{MISSING_CASE_ID}"
+            ),
+            headers={
+                "X-API-Key":
+                    viewer_api_key
+            },
+        )
     )
+
+    assert response.status_code == 404
+
+    assert response.json() == {
+        "detail": "Case not found"
+    }
+
+
+def test_viewer_cannot_create_case(
+    unauthenticated_client: TestClient,
+    viewer_api_key: str,
+) -> None:
+    response = (
+        unauthenticated_client.post(
+            "/api/v1/cases",
+            headers={
+                "X-API-Key":
+                    viewer_api_key
+            },
+            json={
+                "title": (
+                    "Authorization test case"
+                ),
+                "summary": None,
+                "severity": "low",
+                "alert_ids": [],
+            },
+        )
+    )
+
+    assert response.status_code == 403
 
     assert response.json() == {
         "detail": (
@@ -255,25 +266,68 @@ def test_viewer_cannot_access_cases(
     }
 
 
-def test_analyst_can_access_cases(
+def test_viewer_cannot_add_alert_to_case(
     unauthenticated_client: TestClient,
-    analyst_api_key: str,
+    viewer_api_key: str,
 ) -> None:
     response = (
-        unauthenticated_client.get(
-            "/api/v1/cases",
+        unauthenticated_client.post(
+            (
+                "/api/v1/cases/"
+                f"{MISSING_CASE_ID}"
+                "/alerts/"
+                f"{MISSING_ALERT_ID}"
+            ),
             headers={
-                "X-API-Key": (
-                    analyst_api_key
-                )
+                "X-API-Key":
+                    viewer_api_key
             },
         )
     )
 
-    assert (
-        response.status_code
-        == 200
+    assert response.status_code == 403
+
+    assert response.json() == {
+        "detail": (
+            "Insufficient permissions"
+        )
+    }
+
+
+def test_analyst_can_create_case(
+    unauthenticated_client: TestClient,
+    analyst_api_key: str,
+) -> None:
+    response = (
+        unauthenticated_client.post(
+            "/api/v1/cases",
+            headers={
+                "X-API-Key":
+                    analyst_api_key
+            },
+            json={
+                "title": (
+                    "Analyst authorization test"
+                ),
+                "summary": (
+                    "RBAC integration test"
+                ),
+                "severity": "low",
+                "alert_ids": [],
+            },
+        )
     )
+
+    assert response.status_code == 201
+
+    payload = response.json()
+
+    assert (
+        payload["title"]
+        == "Analyst authorization test"
+    )
+
+    assert payload["severity"] == "low"
 
 
 def test_analyst_cannot_ingest(
@@ -287,9 +341,8 @@ def test_analyst_cannot_ingest(
                 "windows-security"
             ),
             headers={
-                "X-API-Key": (
+                "X-API-Key":
                     analyst_api_key
-                )
             },
             json={
                 "dataset_name": (
@@ -300,10 +353,7 @@ def test_analyst_cannot_ingest(
         )
     )
 
-    assert (
-        response.status_code
-        == 403
-    )
+    assert response.status_code == 403
 
 
 def test_ingestion_payload_limit(
@@ -327,19 +377,14 @@ def test_ingestion_payload_limit(
                 "dataset_name": (
                     "payload-limit-test"
                 ),
-                "content": (
-                    "123456789"
-                ),
+                "content": "123456789",
             },
         )
 
     finally:
         get_settings.cache_clear()
 
-    assert (
-        response.status_code
-        == 413
-    )
+    assert response.status_code == 413
 
     assert response.json() == {
         "detail": (

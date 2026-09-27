@@ -21,6 +21,10 @@ import {
 } from './pages/AnalyzeLogsPage'
 
 import {
+  CasesPage,
+} from './pages/CasesPage'
+
+import {
   ConnectPage,
 } from './pages/ConnectPage'
 
@@ -124,10 +128,7 @@ function App() {
         <Route
           path="cases"
           element={
-            <PlaceholderPage
-              title="Cases"
-              description="Track analyst cases and correlated alerts through investigation."
-            />
+            <CasesPage />
           }
         />
 

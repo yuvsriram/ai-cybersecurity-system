@@ -20,6 +20,7 @@ import './index.css'
 import './styles/data.css'
 import './styles/analysis.css'
 import './styles/investigations.css'
+import './styles/cases.css'
 
 createRoot(
   document.getElementById(

@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from cybersec.api.dependencies import (
     get_current_principal,
     get_db_session,
+    require_minimum_role,
 )
 from cybersec.api.schemas.alerts import (
     AlertResponse,
@@ -60,6 +61,13 @@ VALID_SEVERITIES = {
     "",
     response_model=CaseDetailResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(
+            require_minimum_role(
+                "analyst"
+            )
+        )
+    ],
 )
 def create_case(
     request: CaseCreateRequest,
@@ -282,6 +290,13 @@ def get_case(
 @router.post(
     "/{case_id}/alerts/{alert_id}",
     response_model=CaseDetailResponse,
+    dependencies=[
+        Depends(
+            require_minimum_role(
+                "analyst"
+            )
+        )
+    ],
 )
 def add_alert_to_case(
     case_id: str,

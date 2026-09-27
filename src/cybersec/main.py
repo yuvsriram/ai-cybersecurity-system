@@ -160,9 +160,8 @@ def create_app() -> FastAPI:
         ],
     )
 
-    # Investigation history is readable by
-    # viewers. Mutating investigation routes
-    # enforce stronger roles themselves.
+    # Viewers may inspect investigation
+    # history. POST routes enforce analyst.
     app.include_router(
         investigation_runs.router,
         dependencies=[
@@ -174,12 +173,14 @@ def create_app() -> FastAPI:
         ],
     )
 
+    # Viewers may inspect cases. Case
+    # mutations enforce analyst locally.
     app.include_router(
         cases.router,
         dependencies=[
             Depends(
                 require_minimum_role(
-                    "analyst"
+                    "viewer"
                 )
             )
         ],
