@@ -4,7 +4,10 @@ on:
   push:
     branches:
       - main
+      - master
+
   pull_request:
+
   workflow_dispatch:
 
 permissions:
@@ -14,21 +17,25 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+
 jobs:
-  test:
-    name: Python 3.13 / PostgreSQL 17
+  backend:
+    name: Backend / Python 3.13 / PostgreSQL 17
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     services:
       postgres:
         image: postgres:17-alpine
+
         env:
           POSTGRES_DB: cybersec_test
           POSTGRES_USER: cybersec
           POSTGRES_PASSWORD: cybersec_test_password
+
         ports:
           - 5432:5432
+
         options: >-
           --health-cmd "pg_isready -U cybersec -d cybersec_test"
           --health-interval 5s
@@ -38,6 +45,7 @@ jobs:
     env:
       DATABASE_URL: >-
         postgresql+psycopg://cybersec:cybersec_test_password@127.0.0.1:5432/cybersec_test
+
       CYBERSEC_TRACING_ENABLED: "false"
       CYBERSEC_ENVIRONMENT: test
       PYTHONUNBUFFERED: "1"
@@ -70,3 +78,61 @@ jobs:
 
       - name: Run full test suite
         run: python -m pytest
+
+
+  frontend:
+    name: Frontend / Node 24 / React
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Build production frontend
+        env:
+          VITE_AUTH_MODE: demo
+        run: npm run build
+
+
+  containers:
+    name: Production container builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    needs:
+      - backend
+      - frontend
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: |
+          docker build \
+            --tag cybersec-app:ci \
+            .
+
+      - name: Build frontend image
+        run: |
+          docker build \
+            --tag cybersec-frontend:ci \
+            ./frontend
