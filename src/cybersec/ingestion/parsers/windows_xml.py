@@ -191,8 +191,6 @@ def _optional_text(
 def _parse_system_time(
     value: str,
 ) -> datetime:
-    # Windows XML can contain nanosecond precision while
-    # Python datetime stores microseconds.
     normalized = re.sub(
         r"(\.\d{6})\d+(?=Z$)",
         r"\1",

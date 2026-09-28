@@ -188,12 +188,6 @@ class AlertCorrelationService:
                     continue
 
                 priority, reason = match
-
-                # The weakest correlation rule:
-                # same detection rule + same
-                # destination. Require actual
-                # temporal overlap, not merely
-                # proximity within 15 minutes.
                 if (
                     priority == 10
                     and gap_seconds > 0

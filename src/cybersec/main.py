@@ -192,11 +192,6 @@ def create_app() -> FastAPI:
             )
         ],
     )
-
-    # Viewer access permits only the
-    # sanitized /audit/public endpoint.
-    # Full /audit applies admin RBAC
-    # directly on the route.
     app.include_router(
         audit.router,
         dependencies=[

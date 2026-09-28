@@ -91,10 +91,6 @@ class InvestigationWorker:
                 session
             )
         )
-
-        # Intentionally outside the tracing
-        # span. Empty queue polls should not
-        # generate Tempo traces.
         run = (
             run_repository
             .claim_next_queued()
@@ -108,9 +104,6 @@ class InvestigationWorker:
         alert_id = run.alert_id
         provider_name = run.provider
         model_name = run.model
-
-        # Release the queue row lock before
-        # performing expensive processing.
         session.commit()
 
         with _tracer.start_as_current_span(
@@ -309,10 +302,6 @@ class InvestigationWorker:
                         exc
                     ),
                 )
-
-                # Do not attach exception text.
-                # Arbitrary exception messages
-                # may contain telemetry or secrets.
                 span.set_status(
                     Status(
                         StatusCode.ERROR
@@ -391,9 +380,6 @@ def _safe_error_message(
         )
 
     else:
-        # Do not persist arbitrary exception
-        # text. It may contain telemetry,
-        # connection data, or secrets.
         message = (
             f"{type(exc).__name__}: "
             "investigation processing failed"

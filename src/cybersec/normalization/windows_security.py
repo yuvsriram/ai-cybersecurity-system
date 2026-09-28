@@ -182,9 +182,6 @@ def _extract_section_field(
 
     for line in lines[section_start:]:
         stripped = line.strip()
-
-        # A non-indented line ending in ":" indicates
-        # the beginning of the next Windows event section.
         if (
             line
             and not line[0].isspace()

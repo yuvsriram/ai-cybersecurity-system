@@ -107,9 +107,7 @@ class AuthenticationIsolationForest:
         return [
             AnomalyScore(
                 vector=vector,
-                # Higher number means
-                # more anomalous.
-                anomaly_score=(
+               anomaly_score=(
                     -float(raw_score)
                 ),
                 is_anomaly=(
