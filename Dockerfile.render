@@ -1,0 +1,113 @@
+# syntax=docker/dockerfile:1
+
+
+FROM node:24-alpine AS frontend-builder
+
+WORKDIR /build/frontend
+
+COPY frontend/package.json frontend/package-lock.json ./
+
+RUN npm ci
+
+COPY frontend/ ./
+
+RUN VITE_AUTH_MODE=demo npm run build
+
+
+FROM python:3.13-slim AS backend-builder
+
+WORKDIR /build
+
+COPY pyproject.toml ./
+COPY src ./src
+
+RUN python -m pip install --upgrade pip \
+    && python -m pip wheel \
+        --wheel-dir=/wheels \
+        .
+
+
+FROM python:3.13-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=10000 \
+    CYBERSEC_ENVIRONMENT=production \
+    CYBERSEC_TRACING_ENABLED=false \
+    CYBERSEC_LLM_PROVIDER=groq \
+    CYBERSEC_LLM_MODEL=openai/gpt-oss-20b \
+    CYBERSEC_LLM_TIMEOUT_SECONDS=60 \
+    CYBERSEC_LLM_MAX_ATTEMPTS=2
+
+RUN apt-get update \
+    && apt-get install \
+        --yes \
+        --no-install-recommends \
+        ca-certificates \
+        gettext-base \
+        nginx \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd \
+        --gid 10001 \
+        cybersec \
+    && useradd \
+        --uid 10001 \
+        --gid 10001 \
+        --create-home \
+        --home-dir /home/cybersec \
+        --shell /usr/sbin/nologin \
+        cybersec
+
+WORKDIR /app
+
+COPY --from=backend-builder \
+    /wheels \
+    /wheels
+
+RUN python -m pip install \
+        --no-cache-dir \
+        --no-index \
+        --find-links=/wheels \
+        ai-cybersecurity-system \
+    && rm -rf /wheels
+
+COPY alembic.ini ./
+COPY migrations ./migrations
+COPY scripts ./scripts
+
+COPY frontend/nginx/default.conf.template \
+    /app/nginx/default.conf.template
+
+COPY deploy/render/nginx.conf \
+    /etc/nginx/nginx.conf
+
+COPY deploy/render/start.sh \
+    /app/start.sh
+
+COPY --from=frontend-builder \
+    /build/frontend/dist \
+    /usr/share/nginx/html
+
+RUN mkdir -p \
+        /tmp/nginx-client-body \
+        /tmp/nginx-proxy \
+        /tmp/nginx-fastcgi \
+        /tmp/nginx-uwsgi \
+        /tmp/nginx-scgi \
+    && chmod 755 /app/start.sh \
+    && chown -R \
+        cybersec:cybersec \
+        /app \
+        /usr/share/nginx/html \
+        /tmp/nginx-client-body \
+        /tmp/nginx-proxy \
+        /tmp/nginx-fastcgi \
+        /tmp/nginx-uwsgi \
+        /tmp/nginx-scgi
+
+USER cybersec
+
+EXPOSE 10000
+
+CMD ["/app/start.sh"]
