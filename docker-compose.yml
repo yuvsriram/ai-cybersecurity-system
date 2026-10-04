@@ -1,313 +1,625 @@
 services:
+
   postgres:
+
     image: postgres:17-alpine
+
     container_name: cybersec-postgres
 
+
+
     environment:
+
       POSTGRES_DB: ${POSTGRES_DB}
+
       POSTGRES_USER: ${POSTGRES_USER}
+
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
+
+
     ports:
+
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
 
+
+
     volumes:
+
       - cybersec_postgres_data:/var/lib/postgresql/data
 
+
+
     healthcheck:
+
       test:
+
         [
+
           "CMD-SHELL",
+
           "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}",
+
         ]
+
       interval: 5s
+
       timeout: 5s
+
       retries: 10
 
+
+
     restart: unless-stopped
+
+
+
 
 
   migrate:
+
     build:
+
       context: .
+
       dockerfile: Dockerfile
 
+
+
     image: cybersec-app:local
+
     container_name: cybersec-migrate
 
+
+
     command:
+
       [
+
         "python",
+
         "-m",
+
         "alembic",
+
         "upgrade",
+
         "head",
+
       ]
 
+
+
     environment:
+
       DATABASE_URL: >-
+
         postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
 
+
+
     depends_on:
+
       postgres:
+
         condition: service_healthy
+
+
 
     restart: "no"
 
+
+
     security_opt:
+
       - no-new-privileges:true
 
+
+
     cap_drop:
+
       - ALL
+
+
+
 
 
   api:
+
     build:
+
       context: .
+
       dockerfile: Dockerfile
 
+
+
     image: cybersec-app:local
+
     container_name: cybersec-api
 
+
+
     environment:
+
       DATABASE_URL: >-
+
         postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+
+
 
       CYBERSEC_TRUSTED_HOSTS: "localhost,127.0.0.1,api"
 
+
+
       CYBERSEC_API_KEYS_JSON: ${CYBERSEC_API_KEYS_JSON}
+
       CYBERSEC_MAX_INGESTION_BYTES: ${CYBERSEC_MAX_INGESTION_BYTES}
+
+
 
       CYBERSEC_METRICS_TOKEN: ${CYBERSEC_METRICS_TOKEN}
 
+
+
       CYBERSEC_LLM_BASE_URL: http://host.docker.internal:11434
+
       CYBERSEC_LLM_MAX_ATTEMPTS: ${CYBERSEC_LLM_MAX_ATTEMPTS:-2}
+
       CYBERSEC_LLM_RETRY_BASE_SECONDS: ${CYBERSEC_LLM_RETRY_BASE_SECONDS:-1}
+
       CYBERSEC_LLM_MAX_RESPONSE_BYTES: ${CYBERSEC_LLM_MAX_RESPONSE_BYTES:-1048576}
 
+
+
       CYBERSEC_TRACING_ENABLED: "${CYBERSEC_TRACING_ENABLED:-true}"
+
       CYBERSEC_OTLP_TRACES_ENDPOINT: http://tempo:4318/v1/traces
+
       CYBERSEC_ENVIRONMENT: ${CYBERSEC_ENVIRONMENT:-production}
 
+
+
     ports:
+
       - "127.0.0.1:8000:8000"
 
+
+
     depends_on:
+
       migrate:
+
         condition: service_completed_successfully
+
       tempo:
+
         condition: service_started
 
+
+
     healthcheck:
+
       test:
+
         [
+
           "CMD",
+
           "python",
+
           "-c",
+
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)",
+
         ]
+
       interval: 10s
+
       timeout: 5s
+
       retries: 10
+
       start_period: 10s
+
+
 
     init: true
 
+
+
     security_opt:
+
       - no-new-privileges:true
 
+
+
     cap_drop:
+
       - ALL
 
+
+
     restart: unless-stopped
+
+
+
 
 
   worker:
+
     image: cybersec-app:local
+
     container_name: cybersec-worker
 
+
+
     command:
+
       [
+
         "python",
+
         "scripts/run_investigation_worker.py",
+
       ]
 
+
+
     environment:
+
       DATABASE_URL: >-
+
         postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
 
+
+
       CYBERSEC_API_KEYS_JSON: ${CYBERSEC_API_KEYS_JSON}
+
       CYBERSEC_MAX_INGESTION_BYTES: ${CYBERSEC_MAX_INGESTION_BYTES}
 
+
+
       CYBERSEC_LLM_BASE_URL: http://host.docker.internal:11434
+
       CYBERSEC_LLM_MAX_ATTEMPTS: ${CYBERSEC_LLM_MAX_ATTEMPTS:-2}
+
       CYBERSEC_LLM_RETRY_BASE_SECONDS: ${CYBERSEC_LLM_RETRY_BASE_SECONDS:-1}
+
       CYBERSEC_LLM_MAX_RESPONSE_BYTES: ${CYBERSEC_LLM_MAX_RESPONSE_BYTES:-1048576}
 
+
+
       CYBERSEC_TRACING_ENABLED: "${CYBERSEC_TRACING_ENABLED:-true}"
+
       CYBERSEC_OTLP_TRACES_ENDPOINT: http://tempo:4318/v1/traces
+
       CYBERSEC_ENVIRONMENT: ${CYBERSEC_ENVIRONMENT:-production}
 
+
+
       CYBERSEC_WORKER_METRICS_HOST: "0.0.0.0"
+
       CYBERSEC_WORKER_METRICS_PORT: "9101"
 
+
+
     expose:
+
       - "9101"
 
+
+
     depends_on:
+
       migrate:
+
         condition: service_completed_successfully
+
       tempo:
+
         condition: service_started
 
+
+
     healthcheck:
+
       test:
+
         [
+
           "CMD",
+
           "python",
+
           "-c",
+
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9101/metrics', timeout=2)",
+
         ]
+
       interval: 10s
+
       timeout: 5s
+
       retries: 10
+
       start_period: 5s
+
+
 
     init: true
 
+
+
     security_opt:
+
       - no-new-privileges:true
 
+
+
     cap_drop:
+
       - ALL
 
+
+
     restart: unless-stopped
+
+
+
 
 
   frontend:
+
     profiles:
+
       - demo
 
+
+
     build:
+
       context: ./frontend
+
       dockerfile: Dockerfile
 
+
+
     image: cybersec-frontend:local
+
     container_name: cybersec-frontend
 
+
+
     environment:
+
       DEMO_API_KEY: ${DEMO_API_KEY}
 
+
+
     ports:
+
       - "127.0.0.1:8080:8080"
 
+
+
     depends_on:
+
       api:
+
         condition: service_healthy
 
+
+
     healthcheck:
+
       test:
+
         [
+
           "CMD",
+
           "wget",
+
           "-q",
+
           "-O",
+
           "-",
+
           "http://127.0.0.1:8080/health/live",
+
         ]
+
       interval: 10s
+
       timeout: 5s
+
       retries: 10
+
       start_period: 5s
 
+
+
     security_opt:
+
       - no-new-privileges:true
 
+
+
     cap_drop:
+
       - ALL
 
+
+
     restart: unless-stopped
+
+
+
 
 
   prometheus:
+
     image: prom/prometheus:v3.5.0
+
     container_name: cybersec-prometheus
 
+
+
     command:
+
       - "--config.file=/etc/prometheus/prometheus.yml"
+
       - "--storage.tsdb.path=/prometheus"
+
       - "--storage.tsdb.retention.time=15d"
+
       - "--web.enable-lifecycle"
 
+
+
     ports:
+
       - "127.0.0.1:9090:9090"
 
+
+
     volumes:
+
       - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
       - cybersec_prometheus_data:/prometheus
 
+
+
     secrets:
+
       - metrics_token
 
+
+
     depends_on:
+
       api:
-        condition: service_healthy
-      worker:
+
         condition: service_healthy
 
+      worker:
+
+        condition: service_healthy
+
+
+
     restart: unless-stopped
+
+
+
 
 
   tempo:
+
     image: grafana/tempo:3.0.3
+
     container_name: cybersec-tempo
 
+
+
     command:
+
       - "-config.file=/etc/tempo/tempo.yml"
 
+
+
     ports:
+
       - "127.0.0.1:3200:3200"
+
       - "127.0.0.1:4318:4318"
 
+
+
     volumes:
+
       - ./observability/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+
       - cybersec_tempo_data:/var/tempo
 
+
+
     restart: unless-stopped
+
+
+
 
 
   grafana:
+
     image: grafana/grafana:12.1.1
+
     container_name: cybersec-grafana
 
+
+
     environment:
+
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+
       GF_USERS_ALLOW_SIGN_UP: "false"
+
       GF_AUTH_ANONYMOUS_ENABLED: "false"
 
+
+
     ports:
+
       - "127.0.0.1:3000:3000"
 
+
+
     volumes:
+
       - cybersec_grafana_data:/var/lib/grafana
+
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
 
+
+
     depends_on:
+
       - prometheus
+
       - tempo
+
+
 
     restart: unless-stopped
 
 
+
+
+
 secrets:
+
   metrics_token:
+
     file: ./observability/secrets/metrics_token
 
 
+
+
+
 volumes:
+
   cybersec_postgres_data:
+
   cybersec_prometheus_data:
+
   cybersec_grafana_data:
+
   cybersec_tempo_data:

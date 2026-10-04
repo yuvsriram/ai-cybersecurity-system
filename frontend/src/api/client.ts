@@ -68,7 +68,7 @@ export async function apiRequest<T>(
         message = body.detail
       }
     } catch {
-      // Preserve generic HTTP error.
+      
     }
 
     throw new ApiError(

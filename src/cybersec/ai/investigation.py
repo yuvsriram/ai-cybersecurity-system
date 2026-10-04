@@ -305,8 +305,6 @@ class InvestigationService:
             | None
         ) = None
 
-        # One initial generation plus up to two
-        # bounded grounding-repair attempts.
         max_generation_attempts = 3
 
         for attempt in range(

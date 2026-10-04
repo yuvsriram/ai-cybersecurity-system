@@ -1,12 +1,23 @@
 apiVersion: 1
 
+
+
 providers:
+
   - name: Cybersecurity
+
     orgId: 1
+
     folder: Cybersecurity
+
     type: file
+
     disableDeletion: true
+
     editable: true
 
+
+
     options:
+
       path: /var/lib/grafana/dashboards

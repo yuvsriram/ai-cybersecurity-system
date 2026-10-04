@@ -44,10 +44,6 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    # Deliberately do not pass the SQLAlchemy
-    # engine here. Auto-instrumenting it would
-    # create database traces for every empty
-    # queue poll.
     configure_tracing(
         service_name=(
             "cybersec-investigation-worker"
@@ -169,12 +165,6 @@ def main() -> None:
                 )
 
     finally:
-        # Short-lived --once workers must
-        # synchronously hand completed spans
-        # to the exporter before returning.
-        #
-        # Persistent workers keep the normal
-        # BatchSpanProcessor lifecycle.
         if args.once:
             force_flush_tracing(
                 timeout_millis=5000

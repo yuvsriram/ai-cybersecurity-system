@@ -19,35 +19,28 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.pool import NullPool
 
-
-# Tests must never export traces to the
-# developer's real Tempo instance.
-#
-# This must be set before importing
-# cybersec.main because the application
-# configures observability during import.
 os.environ[
     "CYBERSEC_TRACING_ENABLED"
 ] = "false"
 
 
-from cybersec.api.dependencies import (  # noqa: E402
+from cybersec.api.dependencies import (
     get_db_session,
 )
-from cybersec.core.config import (  # noqa: E402
+from cybersec.core.config import (
     get_settings,
 )
-from cybersec.db.base import Base  # noqa: E402
-from cybersec.db.models.alert import (  # noqa: E402,F401
+from cybersec.db.base import Base
+from cybersec.db.models.alert import (
     AlertModel,
 )
-from cybersec.db.models.audit import (  # noqa: E402,F401
+from cybersec.db.models.audit import (
     AuditEventModel,
 )
-from cybersec.db.models.event import (  # noqa: E402,F401
+from cybersec.db.models.event import (
     EventModel,
 )
-from cybersec.main import app  # noqa: E402
+from cybersec.main import app
 
 
 TEST_VIEWER_API_KEY = (
@@ -84,8 +77,6 @@ def configure_test_security(
     None,
     None,
 ]:
-    # Load the real local test database URL
-    # before replacing security configuration.
     get_settings.cache_clear()
 
     database_url = (

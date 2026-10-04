@@ -31,18 +31,18 @@ export default defineConfig([
     },
 
     rules: {
-      /*
-       * Our pages intentionally load
-       * remote API state when mounted or
-       * when filters/auth context change.
-       *
-       * React 19's newer lint preset
-       * treats synchronous loading-state
-       * updates inside those effects as
-       * an error. That rule is more
-       * opinionated than corrective for
-       * this application architecture.
-       */
+      
+
+
+
+
+
+
+
+
+
+
+
       'react-hooks/set-state-in-effect':
         'off',
     },
@@ -54,11 +54,11 @@ export default defineConfig([
     ],
 
     rules: {
-      /*
-       * This module intentionally exports
-       * both the provider and its consumer
-       * hook/context helpers.
-       */
+      
+
+
+
+
       'react-refresh/only-export-components':
         'off',
     },
@@ -72,16 +72,16 @@ export default defineConfig([
     ],
 
     rules: {
-      /*
-       * These pages expose explicit
-       * load/refresh functions that are
-       * also called by UI controls.
-       *
-       * Their effects are intentionally
-       * keyed to the actual state inputs
-       * rather than to a newly-created
-       * function identity each render.
-       */
+      
+
+
+
+
+
+
+
+
+
       'react-hooks/exhaustive-deps':
         'off',
     },
