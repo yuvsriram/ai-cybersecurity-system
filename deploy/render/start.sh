@@ -29,12 +29,6 @@ if [[ "${#DEMO_API_KEY}" -lt 32 ]]; then
 fi
 
 
-#
-# Neon commonly supplies a standard postgresql:// URL.
-#
-# The application intentionally uses psycopg 3, so normalize
-# that URL into SQLAlchemy's explicit psycopg dialect.
-#
 
 case "${DATABASE_URL}" in
     postgresql://*)
@@ -47,12 +41,6 @@ case "${DATABASE_URL}" in
 esac
 
 
-#
-# The browser never receives DEMO_API_KEY.
-#
-# Nginx injects the raw credential server-side. FastAPI stores
-# and compares only its SHA-256 digest.
-#
 
 export CYBERSEC_API_KEYS_JSON="$(
     python - <<'PY'
@@ -82,20 +70,6 @@ PY
 )"
 
 
-#
-# Reuse the already-hardened frontend Nginx allowlist.
-#
-# Docker Compose:
-#   listen 8080
-#   proxy_pass http://api:8000
-#
-# Render single container:
-#   listen $PORT
-#   proxy_pass http://127.0.0.1:8000
-#
-# Restrict envsubst to our two variables so Nginx variables such
-# as $remote_addr and $request_method remain untouched.
-#
 
 sed \
     -e 's/listen 8080;/listen ${PORT};/' \
